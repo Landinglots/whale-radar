@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Whale Radar">
+<title>🐋 Whale Radar — Live Polymarket</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{--bg:#040d14;--surface:#071a28;--card:#0a2236;--border:#0e3a58;--accent:#00d4ff;--accent2:#00ff88;--whale:#7b61ff;--danger:#ff4d6d;--warning:#ffb703;--text:#e8f4fd;--muted:#5a8aa8;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(0,212,255,.08) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 80% 90%,rgba(123,97,255,.06) 0%,transparent 50%);pointer-events:none;z-index:0;}
+header{position:sticky;top:0;z-index:100;background:rgba(4,13,20,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-text{font-size:18px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,var(--accent),var(--whale));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.live-badge{display:flex;align-items:center;gap:5px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--accent2);font-family:'JetBrains Mono',monospace;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);animation:pulse-g 1.5s infinite;}
+@keyframes pulse-g{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px;position:relative;z-index:1;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+.stat-val{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);}
+.stat-val.green{color:var(--accent2);}.stat-val.purple{color:var(--whale);}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+.section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.feed-section{padding:0 16px 80px;position:relative;z-index:1;}
+.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.filter-tabs{display:flex;gap:6px;}
+.tab{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+.tab.active{background:rgba(0,212,255,.12);border-color:var(--accent);color:var(--accent);}
+.trade-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden;transition:transform .15s,border-color .15s;cursor:pointer;}
+.trade-card:active{transform:scale(.98);}
+.trade-card.new-trade{border-color:var(--accent);animation:card-flash 1.5s ease-out;}
+.trade-card.mega{border-color:var(--whale);}
+@keyframes card-flash{0%{background:rgba(0,212,255,.18);}100%{background:var(--card);}}
+.card-glow{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;}
+.trade-card.new-trade .card-glow{opacity:1;}
+.trade-card.mega .card-glow{background:linear-gradient(90deg,transparent,var(--whale),transparent);opacity:1;}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.whale-info{display:flex;align-items:center;gap:8px;}
+.whale-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;font-family:'JetBrains Mono',monospace;}
+.wa-mega{background:rgba(123,97,255,.2);border:1.5px solid var(--whale);}
+.wa-big{background:rgba(0,212,255,.15);border:1.5px solid var(--accent);}
+.wa-mid{background:rgba(0,255,136,.1);border:1.5px solid var(--accent2);}
+.whale-name{font-size:13px;font-weight:600;}
+.whale-addr{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.trade-amount{text-align:right;}
+.amount-val{font-size:16px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent2);}
+.amount-sub{font-size:10px;color:var(--muted);text-align:right;}
+.market-name{font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.4;font-weight:500;}
+.card-bottom{display:flex;align-items:center;justify-content:space-between;}
+.outcome-badge{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.outcome-badge.yes{background:rgba(0,255,136,.12);color:var(--accent2);border:1px solid rgba(0,255,136,.25);}
+.outcome-badge.no{background:rgba(255,77,109,.12);color:var(--danger);border:1px solid rgba(255,77,109,.25);}
+.trade-meta{display:flex;align-items:center;gap:8px;}
+.price-pill{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);background:rgba(14,58,88,.5);padding:3px 7px;border-radius:6px;}
+.time-ago{font-size:10px;color:var(--muted);}
+.copy-btn{display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(123,97,255,.15));border:1px solid rgba(0,212,255,.3);border-radius:8px;padding:7px 12px;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Space Grotesk',sans-serif;margin-top:10px;width:100%;justify-content:center;}
+.copy-btn:active{background:rgba(0,212,255,.25);transform:scale(.97);}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(4,13,20,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 0 16px;}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;transition:color .2s;}
+.nav-item.active{color:var(--accent);}
+.nav-icon{font-size:20px;}
+.toast-wrap{position:fixed;top:70px;left:0;right:0;z-index:200;padding:0 16px;pointer-events:none;}
+.toast{background:linear-gradient(135deg,var(--card),#0d2c42);border:1px solid var(--accent);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;transform:translateY(-80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);pointer-events:auto;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-icon{font-size:20px;}
+.toast-content{flex:1;}
+.toast-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:1px;}
+.toast-body{font-size:11px;color:var(--muted);}
+.toast-close{font-size:16px;color:var(--muted);cursor:pointer;padding:4px;}
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;align-items:flex-end;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 16px 36px;width:100%;animation:slide-up .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes slide-up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 16px;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px;}
+.modal-market{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.15);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:14px;line-height:1.4;}
+.modal-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.modal-row:last-of-type{border:none;}
+.modal-row-label{color:var(--muted);}
+.modal-row-val{font-weight:600;font-family:'JetBrains Mono',monospace;}
+.modal-row-val.yes{color:var(--accent2);}.modal-row-val.no{color:var(--danger);}.modal-row-val.blue{color:var(--accent);}
+.modal-action{background:linear-gradient(135deg,var(--accent),var(--whale));color:#fff;border:none;border-radius:12px;padding:14px;width:100%;margin-top:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:opacity .2s;}
+.modal-action:active{opacity:.85;}
+.modal-cancel{background:transparent;border:none;color:var(--muted);width:100%;padding:10px;font-size:13px;cursor:pointer;margin-top:6px;font-family:'Space Grotesk',sans-serif;}
+.disclaimer{font-size:10px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5;}
+.leaderboard{padding:0 16px 80px;position:relative;z-index:1;display:none;}
+.lb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.lb-rank{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--muted);width:28px;text-align:center;}
+.lb-info{flex:1;}.lb-name{font-size:13px;font-weight:600;margin-bottom:2px;font-family:'JetBrains Mono',monospace;}
+.lb-stats{font-size:10px;color:var(--muted);}
+.lb-pnl{text-align:right;font-family:'JetBrains Mono',monospace;}
+.lb-pnl-val{font-size:15px;font-weight:700;color:var(--accent2);}
+.lb-winrate{font-size:10px;color:var(--muted);}
+.alerts-page{padding:0 16px 80px;position:relative;z-index:1;display:none;}
+.alert-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;}
+.alert-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.alert-dot.buy{background:var(--accent2);}.alert-dot.sell{background:var(--danger);}.alert-dot.whale{background:var(--whale);}
+.alert-text{flex:1;font-size:12px;line-height:1.5;}
+.alert-time{font-size:10px;color:var(--muted);margin-top:2px;}
+.settings-page{padding:0 16px 80px;position:relative;z-index:1;display:none;}
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.settings-card h3{font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.setting-row:last-child{border:none;}
+.setting-label{font-size:13px;}.setting-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;}
+.toggle.on{background:var(--accent2);}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s;}
+.toggle.on::after{transform:translateX(20px);}
+.threshold-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:13px;width:80px;text-align:right;font-family:'JetBrains Mono',monospace;}
+.threshold-input:focus{outline:none;border-color:var(--accent);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;}
+.empty-icon{font-size:40px;margin-bottom:10px;}
+.status-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(0,212,255,.04);border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);position:relative;z-index:1;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);}
+.status-dot.err{background:var(--danger);}
+.status-dot.loading{background:var(--warning);animation:pulse-g 1s infinite;}
+.sonar-section{padding:0 16px 12px;position:relative;z-index:1;}
+.sonar-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;align-items:center;gap:14px;}
+.sonar-radar{width:80px;height:80px;flex-shrink:0;}
+.sonar-radar svg{width:100%;height:100%;}
+.radar-sweep{transform-origin:40px 40px;animation:sweep 3s linear infinite;}
+@keyframes sweep{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.blip{opacity:0;animation:blip-p 3s ease-out infinite;}
+.blip:nth-child(1){animation-delay:.8s;}.blip:nth-child(2){animation-delay:1.6s;}.blip:nth-child(3){animation-delay:2.4s;}
+@keyframes blip-p{0%{opacity:0;}10%{opacity:1;}80%{opacity:.3;}100%{opacity:0;}}
+.sonar-info{flex:1;}
+.sonar-status{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px;}
+.sonar-sub{font-size:11px;color:var(--muted);line-height:1.5;}
+.whale-count{font-family:'JetBrains Mono',monospace;color:var(--accent2);font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<header>
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 80 80">
+      <circle cx="40" cy="40" r="36" stroke="#0e3a58" stroke-width="1.5" fill="none"/>
+      <circle cx="40" cy="40" r="24" stroke="#0e3a58" stroke-width="1" fill="none"/>
+      <circle cx="40" cy="40" r="12" stroke="#0e3a58" stroke-width="1" fill="none"/>
+      <circle cx="40" cy="40" r="3" fill="#00d4ff"/>
+      <g style="transform-origin:40px 40px;animation:sweep 3s linear infinite">
+        <line x1="40" y1="40" x2="40" y2="4" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>
+      </g>
+    </svg>
+    <span class="logo-text">Whale Radar</span>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div><span id="liveLabel">LIVE</span></div>
+</header>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot loading" id="statusDot"></div>
+  <span id="statusText">Connecting to Polymarket API…</span>
+</div>
+
+<!-- PAGE: FEED -->
+<div id="page-feed">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-val" id="statMarkets">—</div><div class="stat-label">Markets</div></div>
+    <div class="stat-card"><div class="stat-val green" id="statTrades">—</div><div class="stat-label">Whale Trades</div></div>
+    <div class="stat-card"><div class="stat-val purple" id="statVol">—</div><div class="stat-label">Volume</div></div>
+  </div>
+
+  <div class="sonar-section">
+    <div class="sonar-wrap">
+      <div class="sonar-radar">
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="36" stroke="#0e3a58" stroke-width="1.5"/>
+          <circle cx="40" cy="40" r="24" stroke="#0e3a58" stroke-width="1"/>
+          <circle cx="40" cy="40" r="12" stroke="#0e3a58" stroke-width="1"/>
+          <circle cx="40" cy="40" r="3" fill="#00d4ff"/>
+          <g class="radar-sweep">
+            <line x1="40" y1="40" x2="40" y2="4" stroke="url(#sg)" stroke-width="2" stroke-linecap="round"/>
+          </g>
+          <circle class="blip" cx="55" cy="22" r="3" fill="#00ff88"/>
+          <circle class="blip" cx="25" cy="52" r="3" fill="#7b61ff"/>
+          <circle class="blip" cx="60" cy="52" r="3" fill="#00d4ff"/>
+          <defs>
+            <linearGradient id="sg" x1="40" y1="40" x2="40" y2="4" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#00d4ff" stop-opacity=".9"/>
+              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="sonar-info">
+        <div class="sonar-status" id="sonarStatus">🐋 Scanning Polymarket…</div>
+        <div class="sonar-sub">Watching <span class="whale-count" id="watchCount">—</span> top markets.<br>Trades ≥ $<span id="threshLabel">500</span> shown as whale alerts.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feed-section">
+    <div class="feed-header">
+      <div class="section-title">⚡ Whale Trades</div>
+      <div class="filter-tabs">
+        <button class="tab active" onclick="setFilter('all',this)">All</button>
+        <button class="tab" onclick="setFilter('mega',this)">$10k+</button>
+        <button class="tab" onclick="setFilter('yes',this)">YES</button>
+        <button class="tab" onclick="setFilter('no',this)">NO</button>
+      </div>
+    </div>
+    <div id="tradeFeed"><div class="empty-state"><div class="empty-icon">📡</div>Loading real trades…</div></div>
+  </div>
+</div>
+
+<!-- PAGE: WHALES (leaderboard) -->
+<div id="page-whales" class="leaderboard">
+  <div class="section-title" style="padding-top:12px">🏆 Top Polymarket Traders</div>
+  <div id="leaderboardList"><div class="empty-state"><div class="empty-icon">⏳</div>Loading leaderboard…</div></div>
+</div>
+
+<!-- PAGE: ALERTS -->
+<div id="page-alerts" class="alerts-page">
+  <div class="section-title" style="padding-top:12px">🔔 Alert History</div>
+  <div id="alertsList"><div class="empty-state"><div class="empty-icon">🔔</div>No alerts yet.</div></div>
+</div>
+
+<!-- PAGE: SETTINGS -->
+<div id="page-settings" class="settings-page">
+  <div class="section-title" style="padding-top:12px">⚙️ Settings</div>
+  <div class="settings-card">
+    <h3>Alert Thresholds</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Min Whale Trade</div><div class="setting-sub">Only alert above this amount</div></div>
+      <div style="display:flex;align-items:center;gap:4px"><input class="threshold-input" type="number" id="minTrade" value="500" onchange="saveSettings()"> $</div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Mega Whale Level</div><div class="setting-sub">Purple badge threshold</div></div>
+      <div style="display:flex;align-items:center;gap:4px"><input class="threshold-input" type="number" id="megaLevel" value="10000" onchange="saveSettings()"> $</div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Refresh Interval</div><div class="setting-sub">How often to poll (seconds)</div></div>
+      <div style="display:flex;align-items:center;gap:4px"><input class="threshold-input" type="number" id="refreshSec" value="30" min="10" max="120" onchange="saveSettings()"> s</div>
+    </div>
+  </div>
+  <div class="settings-card">
+    <h3>Notifications</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Whale Toasts</div><div class="setting-sub">Pop-up on new whale trade</div></div>
+      <div class="toggle on" id="togToast" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Mega Whale Only</div><div class="setting-sub">Only toast $10k+ trades</div></div>
+      <div class="toggle" id="togMega" onclick="this.classList.toggle('on')"></div>
+    </div>
+  </div>
+  <div class="settings-card">
+    <h3>Data Source</h3>
+    <div class="setting-row"><span class="setting-label">Gamma API</span><span class="modal-row-val blue" style="font-size:11px">gamma-api.polymarket.com</span></div>
+    <div class="setting-row"><span class="setting-label">Data API</span><span class="modal-row-val blue" style="font-size:11px">data-api.polymarket.com</span></div>
+    <div class="setting-row"><span class="setting-label">Auth Required</span><span class="modal-row-val yes" style="font-size:11px">None (public)</span></div>
+  </div>
+  <div class="disclaimer" style="padding-bottom:24px">⚠️ For information only. Trading prediction markets carries risk of total loss. Past whale performance does not guarantee future results. Always research before copying trades.</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" id="nav-feed" onclick="showPage('feed')"><span class="nav-icon">📡</span>Feed</div>
+  <div class="nav-item" id="nav-whales" onclick="showPage('whales')"><span class="nav-icon">🐋</span>Whales</div>
+  <div class="nav-item" id="nav-alerts" onclick="showPage('alerts')"><span class="nav-icon">🔔</span>Alerts</div>
+  <div class="nav-item" id="nav-settings" onclick="showPage('settings')"><span class="nav-icon">⚙️</span>Settings</div>
+</nav>
+
+<!-- COPY MODAL -->
+<div class="modal-overlay" id="tradeModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📋 Copy This Trade</div>
+    <div class="modal-sub">Review the position — then open Polymarket to copy it</div>
+    <div class="modal-market" id="modalMarket">—</div>
+    <div class="modal-row"><span class="modal-row-label">Wallet</span><span class="modal-row-val blue" id="modalWallet">—</span></div>
+    <div class="modal-row"><span class="modal-row-label">Position</span><span class="modal-row-val" id="modalOutcome">—</span></div>
+    <div class="modal-row"><span class="modal-row-label">Trade Size</span><span class="modal-row-val blue" id="modalAmount">—</span></div>
+    <div class="modal-row"><span class="modal-row-label">Price Paid</span><span class="modal-row-val" id="modalPrice">—</span></div>
+    <div class="modal-row"><span class="modal-row-label">Implied Prob.</span><span class="modal-row-val yes" id="modalProb">—</span></div>
+    <div class="modal-row"><span class="modal-row-label">Time</span><span class="modal-row-val blue" id="modalTime">—</span></div>
+    <button class="modal-action" onclick="openPolymarket()">🚀 Open Polymarket to Copy</button>
+    <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+    <div class="disclaimer">Copying trades does not guarantee profit. Never invest more than you can afford to lose.</div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const GAMMA = 'https://gamma-api.polymarket.com';
+const DATA  = 'https://data-api.polymarket.com';
+// CORS proxy needed for browser calls — we use allorigins
+const PROXY = url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+let allTrades   = [];
+let alertLog    = [];
+let leaderData  = [];
+let activeFilter= 'all';
+let selectedTrade = null;
+let totalVol    = 0;
+let marketCount = 0;
+let refreshTimer= null;
+let knownTradeIds = new Set();
+
+function getMin()   { return parseInt(document.getElementById('minTrade').value)||500; }
+function getMega()  { return parseInt(document.getElementById('megaLevel').value)||10000; }
+function getRefresh(){ return (parseInt(document.getElementById('refreshSec').value)||30)*1000; }
+
+// ── FETCH HELPERS ─────────────────────────────────────────────────────────────
+async function apiFetch(url) {
+  const r = await fetch(PROXY(url));
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  const j = await r.json();
+  return JSON.parse(j.contents);
+}
+
+// ── LOAD MARKETS + BUILD WHALE FEED ──────────────────────────────────────────
+async function loadMarkets() {
+  setStatus('loading','Fetching top Polymarket markets…');
+  try {
+    // Get top markets by volume
+    const url = `${GAMMA}/markets?limit=20&active=true&closed=false&order=volume&ascending=false`;
+    const data = await apiFetch(url);
+    const markets = Array.isArray(data) ? data : (data.data || data.markets || []);
+    marketCount = markets.length;
+    document.getElementById('statMarkets').textContent = marketCount;
+    document.getElementById('watchCount').textContent = marketCount;
+
+    // Compute total volume
+    totalVol = markets.reduce((s,m) => s + parseFloat(m.volume||m.volumeNum||0), 0);
+    document.getElementById('statVol').textContent = fmtDollar(totalVol);
+
+    setStatus('ok',`Watching ${marketCount} markets · Last refresh: ${fmtTime(new Date())}`);
+    document.getElementById('sonarStatus').textContent = '🐋 Polymarket API Connected';
+
+    showToast('✅ Connected','Polymarket API live — watching '+marketCount+' markets','accent');
+
+    // Now load trades for top markets
+    await loadTrades(markets.slice(0,10));
+    // Load leaderboard
+    await loadLeaderboard();
+
+  } catch(e) {
+    setStatus('err','API error — using demo data. ('+e.message+')');
+    document.getElementById('sonarStatus').textContent = '⚠️ Using demo data';
+    loadDemoData();
+  }
+}
+
+async function loadTrades(markets) {
+  let newFound = 0;
+  const minAmt = getMin();
+
+  for (const market of markets) {
+    try {
+      // Get recent trades via Data API
+      const cid = market.conditionId || market.condition_id;
+      if (!cid) continue;
+      const url = `${DATA}/trades?market=${cid}&limit=20`;
+      const data = await apiFetch(url);
+      const trades = Array.isArray(data) ? data : (data.data || []);
+
+      for (const t of trades) {
+        const amt = parseFloat(t.usdcSize||t.size||t.amount||0);
+        if (amt < minAmt) continue;
+        const tid = t.id || t.transactionHash || (t.timestamp+'_'+amt);
+        if (knownTradeIds.has(tid)) continue;
+        knownTradeIds.add(tid);
+
+        const outcome = (t.outcome||t.side||'').toString().toUpperCase();
+        const price   = parseFloat(t.price||0);
+        const wallet  = t.maker||t.taker||t.userId||t.proxyWallet||'Unknown';
+
+        const trade = {
+          id: tid,
+          market: market.question || market.title || 'Unknown market',
+          marketSlug: market.slug || '',
+          outcome: outcome.includes('YES')||outcome==='1'||outcome==='BUY' ? 'YES' : 'NO',
+          price: price,
+          amount: amt,
+          wallet: wallet,
+          time: new Date(t.timestamp ? t.timestamp*1000 : Date.now()),
+          isNew: true,
+        };
+
+        allTrades.unshift(trade);
+        newFound++;
+
+        // Alert
+        const aType = trade.outcome==='YES'?'buy':'sell';
+        addAlert(`🐋 $${fmtDollar(amt)} ${trade.outcome} on: ${trade.market.substring(0,60)}…`, aType);
+
+        // Toast
+        if (document.getElementById('togToast').classList.contains('on')) {
+          const megaOnly = document.getElementById('togMega').classList.contains('on');
+          if (!megaOnly || amt >= getMega()) {
+            const isMega = amt >= getMega();
+            showToast(
+              isMega ? `🐳 MEGA WHALE $${fmtDollar(amt)}` : `🐋 Whale $${fmtDollar(amt)}`,
+              `${trade.outcome} on "${trade.market.substring(0,48)}…"`,
+              isMega ? 'whale' : 'accent'
+            );
+          }
+        }
+      }
+    } catch(_) {}
+  }
+
+  if (allTrades.length > 200) allTrades = allTrades.slice(0,200);
+  document.getElementById('statTrades').textContent = allTrades.length;
+  renderFeed();
+  if (newFound > 0) setTimeout(()=>{ allTrades.forEach(t=>t.isNew=false); renderFeed(); }, 3000);
+}
+
+async function loadLeaderboard() {
+  try {
+    const url = `${DATA}/leaderboard?limit=20`;
+    const data = await apiFetch(url);
+    const rows = Array.isArray(data) ? data : (data.data||data.leaderboard||[]);
+    leaderData = rows;
+    if (document.getElementById('page-whales').style.display !== 'none') renderLeaderboard();
+  } catch(_) {
+    leaderData = [];
+  }
+}
+
+// ── DEMO DATA (fallback if CORS blocked) ──────────────────────────────────────
+const DEMO_MARKETS = [
+  'Will Bitcoin exceed $150k before end of 2026?',
+  'Will the Fed cut rates in July 2026?',
+  'Will the US enter a recession in 2026?',
+  'Will OpenAI release GPT-5 in 2026?',
+  'Will Taylor Swift announce a new album in 2026?',
+  'Will SpaceX reach orbit with Starship in 2026?',
+  'Will Ethereum hit $10k in 2026?',
+  'Will Apple release AR glasses in 2026?',
+];
+
+function loadDemoData() {
+  marketCount = 8;
+  document.getElementById('statMarkets').textContent = marketCount;
+  document.getElementById('watchCount').textContent = marketCount;
+  document.getElementById('statVol').textContent = '$3.8M';
+  for (let i=0;i<12;i++) {
+    const amt = Math.floor(Math.random()*20000)+500;
+    const outcome = Math.random()>.45?'YES':'NO';
+    const price = parseFloat((Math.random()*.6+.2).toFixed(2));
+    allTrades.push({
+      id:'demo_'+i,
+      market: DEMO_MARKETS[Math.floor(Math.random()*DEMO_MARKETS.length)],
+      marketSlug:'',
+      outcome,price,amount:amt,
+      wallet:'0x'+Math.random().toString(16).slice(2,10)+'…'+Math.random().toString(16).slice(2,6),
+      time: new Date(Date.now()-i*4*60000),
+      isNew:false,
+    });
+  }
+  document.getElementById('statTrades').textContent = allTrades.length;
+  renderFeed();
+  showToast('⚠️ Demo Mode','Real API blocked by browser CORS. Data is simulated.','whale');
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function timeAgo(d) {
+  const s = Math.floor((Date.now()-d.getTime())/1000);
+  if(s<60) return s+'s ago';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  return Math.floor(s/3600)+'h ago';
+}
+
+function fmtDollar(n) {
+  n = parseFloat(n)||0;
+  if(n>=1000000) return '$'+(n/1000000).toFixed(1)+'M';
+  if(n>=1000) return '$'+(n/1000).toFixed(1)+'k';
+  return '$'+Math.round(n).toLocaleString();
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+function tierClass(amt) {
+  if(amt>=getMega()) return 'wa-mega';
+  if(amt>=2000) return 'wa-big';
+  return 'wa-mid';
+}
+
+function walletShort(w) {
+  if(!w||w==='Unknown') return '???';
+  if(w.length>16) return w.slice(0,6)+'…'+w.slice(-4);
+  return w;
+}
+
+function renderFeed() {
+  const feed = document.getElementById('tradeFeed');
+  let trades = allTrades;
+  if(activeFilter==='mega') trades=trades.filter(t=>t.amount>=getMega());
+  else if(activeFilter==='yes') trades=trades.filter(t=>t.outcome==='YES');
+  else if(activeFilter==='no')  trades=trades.filter(t=>t.outcome==='NO');
+
+  if(!trades.length) {
+    feed.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div>No trades match filter yet.</div>';
+    return;
+  }
+
+  feed.innerHTML = trades.slice(0,30).map(t=>`
+    <div class="trade-card ${t.isNew?'new-trade':''} ${t.amount>=getMega()?'mega':''}" onclick="openModal('${t.id}')">
+      <div class="card-glow"></div>
+      <div class="card-top">
+        <div class="whale-info">
+          <div class="whale-avatar ${tierClass(t.amount)}">${t.amount>=getMega()?'🐳':t.amount>=2000?'🐋':'🐟'}</div>
+          <div>
+            <div class="whale-name">${walletShort(t.wallet)}</div>
+            <div class="whale-addr">${walletShort(t.wallet)}</div>
+          </div>
+        </div>
+        <div class="trade-amount">
+          <div class="amount-val">${fmtDollar(t.amount)}</div>
+          <div class="amount-sub">${fmtTime(t.time)}</div>
+        </div>
+      </div>
+      <div class="market-name">${t.market}</div>
+      <div class="card-bottom">
+        <span class="outcome-badge ${t.outcome.toLowerCase()}">${t.outcome}</span>
+        <div class="trade-meta">
+          <span class="price-pill">${t.price?(t.price*100).toFixed(0)+'¢':'—'}</span>
+          <span class="time-ago">${timeAgo(t.time)}</span>
+        </div>
+      </div>
+      <button class="copy-btn">📋 Copy Trade</button>
+    </div>
+  `).join('');
+}
+
+function renderLeaderboard() {
+  const el = document.getElementById('leaderboardList');
+  if(!leaderData.length) {
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">⏳</div>Leaderboard loading…</div>';
+    return;
+  }
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML = leaderData.slice(0,20).map((r,i)=>{
+    const addr = r.proxyWallet||r.address||r.userId||'Unknown';
+    const pnl  = parseFloat(r.profitLoss||r.pnl||r.profit||0);
+    const vol  = parseFloat(r.volume||0);
+    return `<div class="lb-card">
+      <div class="lb-rank">${medals[i]||i+1}</div>
+      <div class="whale-avatar wa-${i<3?'mega':i<7?'big':'mid'}" style="width:36px;height:36px;font-size:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i<3?'🐳':'🐋'}</div>
+      <div class="lb-info">
+        <div class="lb-name">${walletShort(addr)}</div>
+        <div class="lb-stats">Vol: ${fmtDollar(vol)}</div>
+      </div>
+      <div class="lb-pnl">
+        <div class="lb-pnl-val" style="color:${pnl>=0?'var(--accent2)':'var(--danger)'}">${pnl>=0?'+':''}${fmtDollar(pnl)}</div>
+        <div class="lb-winrate">P&L</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(id) {
+  const t = allTrades.find(x=>x.id===id);
+  if(!t) return;
+  selectedTrade = t;
+  document.getElementById('modalMarket').textContent   = t.market;
+  document.getElementById('modalWallet').textContent   = walletShort(t.wallet);
+  document.getElementById('modalAmount').textContent   = fmtDollar(t.amount);
+  const oEl = document.getElementById('modalOutcome');
+  oEl.textContent = t.outcome;
+  oEl.className   = 'modal-row-val '+(t.outcome==='YES'?'yes':'no');
+  document.getElementById('modalPrice').textContent    = t.price ? (t.price*100).toFixed(1)+'¢ per share' : '—';
+  document.getElementById('modalProb').textContent     = t.price ? (t.price*100).toFixed(0)+'%' : '—';
+  document.getElementById('modalTime').textContent     = t.time.toLocaleString();
+  document.getElementById('tradeModal').classList.add('open');
+}
+
+function closeModal(e) {
+  if(!e||e.target===document.getElementById('tradeModal'))
+    document.getElementById('tradeModal').classList.remove('open');
+}
+
+function openPolymarket() {
+  const slug = selectedTrade?.marketSlug;
+  const url  = slug ? `https://polymarket.com/event/${slug}` : 'https://polymarket.com';
+  window.open(url,'_blank');
+  closeModal();
+  addAlert(`You copied: ${selectedTrade.outcome} on "${selectedTrade.market}"`, 'whale');
+  showToast('🚀 Opening Polymarket','Place your '+selectedTrade.outcome+' bet as shown','accent');
+}
+
+// ── ALERTS ────────────────────────────────────────────────────────────────────
+function addAlert(text, type='buy') {
+  alertLog.unshift({text,type,time:new Date()});
+  if(alertLog.length>100) alertLog.pop();
+  // Update badge
+  const navA = document.getElementById('nav-alerts');
+  if(navA && !document.getElementById('page-alerts').style.display.includes('block'))
+    navA.style.color='var(--warning)';
+}
+
+function renderAlerts() {
+  const el = document.getElementById('alertsList');
+  if(!alertLog.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div>No alerts yet.</div>';return;}
+  el.innerHTML=alertLog.map(a=>`
+    <div class="alert-item">
+      <div class="alert-dot ${a.type}"></div>
+      <div><div class="alert-text">${a.text}</div><div class="alert-time">${timeAgo(a.time)}</div></div>
+    </div>`).join('');
+}
+
+// ── PAGES ─────────────────────────────────────────────────────────────────────
+function showPage(name) {
+  ['feed','whales','alerts','settings'].forEach(p=>{
+    const el=document.getElementById('page-'+p);
+    if(el) el.style.display=p===name?'block':'none';
+    const nav=document.getElementById('nav-'+p);
+    if(nav){nav.classList.toggle('active',p===name);nav.style.color='';}
+  });
+  if(name==='whales') renderLeaderboard();
+  if(name==='alerts') renderAlerts();
+}
+
+// ── STATUS ────────────────────────────────────────────────────────────────────
+function setStatus(type,msg) {
+  const dot=document.getElementById('statusDot');
+  const txt=document.getElementById('statusText');
+  dot.className='status-dot '+(type==='ok'?'':type);
+  txt.textContent=msg;
+  const lb=document.getElementById('liveLabel');
+  if(lb) lb.textContent=type==='err'?'DEMO':'LIVE';
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(title,body,type='accent') {
+  const wrap=document.getElementById('toastWrap');
+  const icons={accent:'🐋',whale:'🐳',green:'💰'};
+  const t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML=`<div class="toast-icon">${icons[type]||'🔔'}</div>
+    <div class="toast-content"><div class="toast-title">${title}</div><div class="toast-body">${body}</div></div>
+    <div class="toast-close" onclick="this.parentElement.remove()">✕</div>`;
+  wrap.appendChild(t);
+  setTimeout(()=>t.classList.add('show'),50);
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},5500);
+}
+
+// ── FILTER ────────────────────────────────────────────────────────────────────
+function setFilter(f,btn) {
+  activeFilter=f;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFeed();
+}
+
+function saveSettings() {
+  document.getElementById('threshLabel').textContent = getMin();
+}
+
+// ── POLLING ───────────────────────────────────────────────────────────────────
+async function refresh() {
+  try {
+    setStatus('loading','Refreshing trades…');
+    const url=`${GAMMA}/markets?limit=10&active=true&closed=false&order=volume&ascending=false`;
+    const data=await apiFetch(url);
+    const markets=Array.isArray(data)?data:(data.data||data.markets||[]);
+    await loadTrades(markets.slice(0,8));
+    setStatus('ok',`Updated · ${fmtTime(new Date())}`);
+  } catch(e){
+    setStatus('err','Refresh failed · '+fmtTime(new Date()));
+  }
+  scheduleRefresh();
+}
+
+function scheduleRefresh() {
+  if(refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(refresh, getRefresh());
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('page-feed').style.display='block';
+loadMarkets().then(scheduleRefresh);
+
+// Refresh time-agos every 30s
+setInterval(()=>{
+  if(document.getElementById('page-feed').style.display!=='none') renderFeed();
+  if(document.getElementById('page-alerts').style.display!=='none') renderAlerts();
+},30000);
+</script>
+</body>
+</html>
